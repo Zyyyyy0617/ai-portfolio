@@ -103,6 +103,6 @@ if __name__ == "__main__":
 1.原脚本依赖课程内部自定义`weekpath`模块，本地环境缺少该模块，运行直接抛出`ModuleNotFoundError`
 2.删除全部`import weekpath`以及`sys.path`插入相关代码；使用 Python 内置`os.path`
 3.业务函数`load_words / filter_by_level / count_by_pos / gen_exercises`全部保留不变，不改动习题生成逻辑。
-4.旧脚本筛选 HSK4 词汇后，所有词语直接平铺输出，没有按词性归类。练习文本无法区分动词、名词，不利于对外汉语课堂词性教学。其余功能：CSV 空格清洗、词义配对、选词填空、造句、参考答案均已实现。
+4.使用**字典**`{pos: [wordlist]`实现按词性分组存储，字典 key 保存词性，value 保存同词性词汇列表。
 ##4.最终版vs初版差异说明
 初版weekpath库电脑中没有，最终版适用python内置函数绕过weekpath库达到最终目的
