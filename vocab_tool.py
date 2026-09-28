@@ -3,16 +3,11 @@
 import os
 import csv
 
-# ========== 替代 weekpath，纯标准库实现路径 ==========
-# 当前脚本的绝对路径
+# ========== 路径逻辑 ==========
 SCRIPT_FILE = os.path.abspath(__file__)
-# 当前脚本所在文件夹
 SCRIPT_DIR = os.path.dirname(SCRIPT_FILE)
-# 项目根目录：脚本目录向上一级（等价原来 weekpath.root_path）
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
-# data目录下生词表csv
 DATA = os.path.join(PROJECT_ROOT, "data", "生词表.csv")
-# 输出练习txt到项目根目录
 DEFAULT_OUT = os.path.join(PROJECT_ROOT, "练习.txt")
 
 
@@ -45,15 +40,35 @@ def count_by_pos(words):
     return d
 
 
+def group_by_pos(words):
+    """【新增】按词性分组，返回字典 {词性: [词汇列表]}"""
+    groups = {}
+    for w in words:
+        pos = w["词性"]
+        if pos not in groups:
+            groups[pos] = []
+        groups[pos].append(w)
+    return groups
+
+
 def gen_exercises(words, out=None):
     out = out or DEFAULT_OUT
     words_list = words
+    pos_groups = group_by_pos(words_list)
 
     vocab = [item["词汇"] for item in words_list]
     meaning = [item["释义"] for item in words_list]
 
     lines = []
     lines.append("==== HSK4生词练习（自动生成）====\n\n")
+
+    # ========== 新增：按词性分组展示 ==========
+    lines.append("=== HSK4词汇（按词性分组）===\n")
+    for pos, word_list in pos_groups.items():
+        lines.append(f"【{pos}】\n")
+        for w in word_list:
+            lines.append(f"{w['词汇']}  释义：{w['释义']}\n")
+        lines.append("\n")
 
     # 1 词义配对
     lines.append("一、词义配对：把词语和对应的释义相连\n")
@@ -77,7 +92,7 @@ def gen_exercises(words, out=None):
         lines.append(s + "\n")
     lines.append("\n")
 
-    # 3 造句小题（保留原程序原有功能）
+    # 3 造句小题
     lines.append("三、用词语造句\n")
     for w in words_list:
         lines.append(f"用“{w['词汇']}”造一个句子。（{w['词性']}）\n")
@@ -95,8 +110,9 @@ def gen_exercises(words, out=None):
 if __name__ == "__main__":
     words = load_words()
     lv4 = filter_by_level(words, "4")
+    pos_count = count_by_pos(lv4)
     print("总词汇 %d 个，其中 HSK4 词汇 %d 个，词性分布：%s"
-          % (len(words), len(lv4), count_by_pos(lv4)))
+          % (len(words), len(lv4), pos_count))
     out = DEFAULT_OUT
     gen_exercises(lv4, out)
     print("已生成：%s" % out)
