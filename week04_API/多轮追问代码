@@ -1,0 +1,69 @@
+# 依赖：pip install openai python-dotenv
+# 运行：python week4_multi_bot.py
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import weekpath  # noqa: E402  加载 .env
+weekpath.load_env()
+import openai  # noqa: E402
+
+BASE_URL = "https://api.deepseek.com/v1"          # 通义：https://dashscope.aliyuncs.com/compatible-mode/v1
+MODEL = "deepseek-chat"                            # 通义：qwen-plus
+_client = None
+# ==========新增：全局变量保存多轮对话历史==========
+conversation_history = []
+
+def get_client():
+    """按需创建客户端：这样"没配密钥"能在 __main__ 里被友好提示，
+    而不是在 import 阶段就抛出看不懂的 OpenAIError。"""
+    global _client
+    if _client is None:
+        key = os.getenv("DEEPSEEK_API_KEY")
+        if not key:
+            raise RuntimeError("未配置 DEEPSEEK_API_KEY")
+        _client = openai.OpenAI(base_url=BASE_URL, api_key=key)  # 密钥必须来自环境变量
+    return _client
+
+# ==========改造ask函数：使用对话历史==========
+def ask(question, temperature=0.7, max_tokens=800):
+    global conversation_history
+    # 将用户新问题加入历史
+    conversation_history.append({"role": "user", "content": question})
+    r = get_client().chat.completions.create(
+        model=MODEL,
+        messages=conversation_history,   # 传入完整历史，实现记忆
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
+    ans = r.choices[0].message.content
+    # 将AI回答存入历史，供下一轮使用
+    conversation_history.append({"role": "assistant", "content": ans})
+    return ans
+
+
+if __name__ == "__main__":
+    if not os.getenv("DEEPSEEK_API_KEY"):
+        print("错误：未设置 DEEPSEEK_API_KEY。")
+        print("  处理：复制 .env.example 为 .env 并填入密钥，重启终端后重试。")
+        sys.exit(1)
+
+    print("=====学科多轮问答机器人=====")
+    print("提示：输入 exit 退出程序\n")
+
+    while True:
+        user_q = input("请输入你的学科问题：")
+        # 退出判断
+        if user_q.strip().lower() == "exit":
+            print("对话结束。")
+            break
+        try:
+            ans = ask(user_q)
+        except openai.APITimeoutError:
+            print("错误：请求超时，请检查网络或调大 timeout。")
+            sys.exit(1)
+
+        print(f"\nAI回答：{ans}\n")
+        # 多轮日志，写到项目根目录 multi_chat_log.txt
+        log_path = weekpath.root_path("multi_chat_log.txt")
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(f"Q: {user_q}\nA: {ans}\n{'-'*50}\n\n")
