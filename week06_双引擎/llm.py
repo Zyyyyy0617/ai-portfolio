@@ -2,6 +2,7 @@
 # 依赖：pip install openai requests python-dotenv
 import os
 import sys
+import time  ###增加时间mod
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import weekpath  # noqa: E402  跨周导入 + 加载 .env
@@ -68,27 +69,28 @@ class APIEngine:
 
 
 class LLM:
-    """统一入口：ask(prompt)。本地优先、云端兜底、**双向**异常自动切换。
-
-    prefer='local'：本地挂了自动切云端；
-    prefer='api'  ：云端挂了（断网/超时/未配密钥）自动切本地。
-    两侧对称，任何一边失败都不会让程序直接崩——这正是"双引擎"存在的意义。
-    """
-
+    """统一入口：ask(prompt)。本地优先、云端兜底，增加最多2次重试，重试失败再切换备选引擎。"""
     def __init__(self, local_model=None):
         self.local = LocalEngine(local_model)
         self.api = APIEngine()
 
-    def ask(self, prompt, prefer="local", **kw):
+    def ask(self, prompt, prefer="local", max_retry=2, **kw):
         if prefer == "local":
-            first, second, tag = self.local, self.api, "本地失败，自动切换云端"
+            first, second, tag = self.local, self.api, "本地重试耗尽，自动切换云端"
         else:
-            first, second, tag = self.api, self.local, "云端失败，自动切换本地"
-        try:
-            return first.ask(prompt, **kw)
-        except Exception as e:
-            print("[%s] %s" % (tag, e))
-            return second.ask(prompt, **kw)
+            first, second, tag = self.api, self.local, "云端重试耗尽，自动切换本地"
+
+        # 优先引擎最多尝试 max_retry+1 次（原始1次 + max_retry次重试）
+        for attempt in range(max_retry + 1):
+            try:
+                return first.ask(prompt, **kw)
+            except Exception as e:
+                print(f"[{tag}] 第{attempt+1}次调用失败: {e}")
+                time.sleep(0.8)
+        
+        print(f"[{tag}] {max_retry}次重试全部失败，切换备选引擎")
+        return second.ask(prompt,**kw)    ######选择失败重试，最多 2 次重试，适用于网络抖动、API 瞬时限流这类临时故障；区别于引擎切换，重试优先尝试当前优选引擎，重试耗尽才切换备选引擎，减少不必要的引擎切换开销。
+
 
 
 if __name__ == "__main__":
