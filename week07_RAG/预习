@@ -1,0 +1,18 @@
+Project_v1.0_学科问答助手/
+│
+├── .env                  # 存放 API 密钥（红线：严禁入仓，必须写进 .gitignore）
+├── .gitignore            # 忽略 .env、chroma_db 等不需要提交的文件
+├── requirements.txt      # 记录项目依赖包（如 langchain, chromadb, streamlit 等）
+├── weekpath.py           # 课程提供的路径与环境加载工具
+│
+├── engine/               # 核心引擎层
+│   ├── llm.py            # 第6周的大模型接口（负责生成，提供 ask 方法）
+│   └── rag_qa.py         # 第7周的检索问答逻辑（负责四步走，提供 retrieve 和 build_prompt）
+│
+├── data/                 # 数据层
+│   └── 学科知识库.txt      # 存放学科资料（如等级标准、课文、讲义）
+│
+├── db/                   # 持久化存储层
+│   └── chroma_db/        # 向量库文件（由 rag_qa.py 自动生成，不需要手动建）
+│
+└── app.py (或 main.py)   # 交互层/应用入口（负责串联引擎，提供用户界面）
