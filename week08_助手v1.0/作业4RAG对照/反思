@@ -1,0 +1,7 @@
+官方 RAG 对照反思
+跑通官方 2-Step RAG 最小示例后，我对比了自己写的 `rag_qa.py`，最直观的感受是“组件抽象”带来的可替换性。
+在官方的流水线里，`TextLoader`、`RecursiveCharacterTextSplitter`、`OllamaEmbeddings`、`Chroma` 分别被清晰地定义在 Load、Split、Embed、Store 四个独立步骤中。
+我的 `rag_qa.py` 虽然功能类似，但在代码组织上把切分和向量化耦合在了一起。这次改造我把英文语料换成了 HSK 标准节选，把嵌入模型换成本地的 `nomic-embed-text`，
+整个流程不需要改动生成部分（`ChatOllama`）的一行代码，这让我真正体会到了官方文档里说的“loaders / splitters / embeddings / vector stores 都能单独替换，不必改应用逻辑”。
+另一个收获是 2-Step RAG 的“单向无回环”特性：检索结果无论好坏都会直接进入 Prompt，这提醒我在 `rag_qa.py` 里必须重视检索质量（比如 `k` 值和 `chunk_size` 的调整）
+，否则错误召回会直接导致生成出错。下一步我计划把官方示例里的 `k=2` 与我自己代码里的 `top-k` 做对比，观察检索数量对答案准确性的影响。
