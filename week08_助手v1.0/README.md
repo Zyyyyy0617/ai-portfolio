@@ -17,7 +17,7 @@
 
 ## 怎么用
 
-- python assistant_v1.py（从 week08_助手v1.0 目录运行）
+- python assistant_v1.py
 
 
 ## 已知问题
