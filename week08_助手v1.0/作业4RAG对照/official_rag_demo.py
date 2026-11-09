@@ -7,14 +7,14 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 
-# ---------- 1. Load + Split（对应官方流水线第 1 行） ----------
+# ---------- 1. Load + Split ----------
 loader = TextLoader("./hsk_standard.txt", encoding="utf-8")
 docs = loader.load()
 
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
 splits = text_splitter.split_documents(docs)
 
-# ---------- 2. Embed + Store（对应官方流水线第 2 行） ----------
+# ---------- 2. Embed + Store ----------
 # 使用你本地已经 pull 好的 nomic-embed-text 模型
 embeddings = OllamaEmbeddings(model="nomic-embed-text")
 vectordb = Chroma.from_documents(
@@ -23,11 +23,10 @@ vectordb = Chroma.from_documents(
     persist_directory="./chroma_hsk_db"  # 向量库会存到这个目录
 )
 
-# ---------- 3. Retrieve（对应官方流水线第 3 行） ----------
+# ---------- 3. Retrieve ----------
 retriever = vectordb.as_retriever(search_kwargs={"k": 2})
 
-# ---------- 4. Prompt + Generate（对应官方流水线第 4 行） ----------
-# 使用你本地已有的 qwen2.5:0.5b 模型
+# ---------- 4. Prompt + Generate ----------
 llm = ChatOllama(model="qwen2.5:0.5b", temperature=0)
 
 # 定义一个最简 RAG 提示词，把检索到的资料塞进去
@@ -48,7 +47,7 @@ rag_chain = (
     | StrOutputParser()
 )
 
-# ---------- 5. 执行问答（Deploy + Evaluate 的雏形） ----------
+# ---------- 5. 执行问答 ----------
 if __name__ == "__main__":
     question = "HSK4的词汇量要求是多少？"
     print(f"Q: {question}")
